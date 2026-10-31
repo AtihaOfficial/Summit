@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Summit · One step at a time</title>
+<script>
+  /* Theme + favicon, applied before paint */
+  (function () {
+    function favicon(t) {
+      var dark = t === 'dark';
+      var bg = dark ? '#F0D9E4' : '#5B1523';
+      var fg = dark ? '#16131F' : '#F6E7C8';
+      var ac = dark ? '#806C79' : '#D8B98A';
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+        '<rect width="64" height="64" rx="16" fill="' + bg + '"/>' +
+        '<path d="M7 51 L24 22 L33 36 L41 26 L57 51Z" fill="' + fg + '"/>' +
+        '<path d="M47 8 L49.4 14.6 L56 17 L49.4 19.4 L47 26 L44.6 19.4 L38 17 L44.6 14.6Z" fill="' + ac + '"/></svg>';
+      var l = document.getElementById('favicon');
+      if (!l) {
+        l = document.createElement('link');
+        l.id = 'favicon'; l.rel = 'icon'; l.type = 'image/svg+xml';
+        document.head.appendChild(l);
+      }
+      l.href = 'data:image/svg+xml,' + encodeURIComponent(svg);
+      var m = document.querySelector('meta[name="theme-color"]');
+      if (!m) { m = document.createElement('meta'); m.name = 'theme-color'; document.head.appendChild(m); }
+      m.content = dark ? '#16131F' : '#A8927A';
+    }
+    window.setFavicon = favicon;
+
+    var t;
+    try { t = localStorage.getItem('peaks.theme'); } catch (e) {}
+    if (!t) t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    document.documentElement.dataset.theme = t;
+    favicon(t);
+  })();
+</script>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700;900&display=swap">
+<link rel="stylesheet" href="style.css?v=4">
+</head>
+<body>
+<div id="errbar" role="alert" style="display:none;position:fixed;top:0;left:0;right:0;z-index:100;background:#b00020;color:#fff;padding:10px 14px;font:600 13px/1.4 system-ui,sans-serif"></div>
+<script>
+  /* Shows a red bar if a script fails to load or crashes */
+  (function () {
+    function show(msg) {
+      var b = document.getElementById('errbar');
+      if (b) { b.style.display = 'block'; b.textContent = msg; }
+    }
+    window.addEventListener('error', function (e) {
+      if (e.target && e.target.tagName === 'SCRIPT') show('Could not load ' + (e.target.getAttribute('src') || 'a script') + '. Check the file name and folder.');
+      else show('Script error: ' + e.message + ' (' + String(e.filename || '').split('/').pop() + ':' + e.lineno + ')');
+    }, true);
+    window.addEventListener('load', function () {
+      if (window.PEAKS_VERSION !== 4) show('script.js is missing or out of date. Replace it with the newest version, then press Ctrl+Shift+R.');
+    });
+  })();
+</script>
+
+<canvas id="sparkles" aria-hidden="true"></canvas>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div id="toast" aria-live="polite"></div>
+
+<main class="mx-auto max-w-5xl px-4 pb-12">
+
+  <!-- NAV -->
+  <nav class="nav" aria-label="Main">
+    <a href="#top" class="logo" aria-label="Summit, back to top">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 20 L9.5 8 L13 14 L16 10 L21 20Z"/></svg>
+    </a>
+    <span class="hidden sm:block serif text-xl font-black pr-2">Summit</span>
+    <div class="flex-1 flex items-center justify-center gap-1 sm:gap-3">
+      <a class="nl" href="#habits">Habits</a>
+      <a class="nl" href="#focus">Focus</a>
+      <a class="nl" href="#insights">Insights</a>
+    </div>
+    <button id="themeBtn" class="ibtn" type="button" aria-label="Switch theme">
+      <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+      <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+    </button>
+    <div class="about-menu-wrap">
+  <button
+    id="moreBtn"
+    class="ibtn"
+    type="button"
+    aria-label="More options"
+    aria-expanded="false"
+    aria-controls="aboutMenu"
+  >
+    <svg viewBox="0 0 24 24" width="20" height="20"
+         fill="currentColor" aria-hidden="true">
+      <circle cx="5" cy="12" r="1.8"/>
+      <circle cx="12" cy="12" r="1.8"/>
+      <circle cx="19" cy="12" r="1.8"/>
+    </svg>
+  </button>
+
+  <div id="aboutMenu" class="about-menu" hidden>
+    <button id="aboutBtn" type="button">
+      About Summit
+    </button>
+  </div>
+</div>
+  </nav>
+
+  <!-- SUCCESS BANNER -->
+  <div id="banner" class="banner" role="status" aria-live="polite">
+    <div class="p-6 sm:p-8 flex items-center gap-5">
+      <span class="badge text-6xl" aria-hidden="true">🏆</span>
+      <div>
+        <h2 class="serif text-3xl sm:text-4xl font-black leading-tight">Every peak climbed!</h2>
+        <p class="mt-1 font-medium" id="bannerMsg"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="frame" id="top">
+    <div class="banner-art">
+      <svg class="peaks" viewBox="0 0 800 200" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 200 L0 120 L120 40 L210 110 L320 20 L450 130 L560 60 L680 120 L800 50 L800 200Z"/>
+        <path class="p2" d="M0 200 L0 160 L90 110 L190 160 L300 90 L420 170 L540 120 L660 175 L800 110 L800 200Z"/>
+      </svg>
+      <div class="relative">
+        <p class="text-sm font-medium opacity-80" id="today"></p>
+        <h1 class="serif text-5xl sm:text-7xl font-black leading-[0.95] mt-2">Small climbs,<br>every day.</h1>
+      </div>
+      <div class="relative flex flex-wrap items-end justify-between gap-3 mt-8">
+        <div class="float">
+          <p class="text-xs font-bold opacity-80">Running streak</p>
+          <p class="serif text-3xl font-black leading-none mt-1"><span id="bestNow">0</span> <span class="text-base font-bold">days</span></p>
+        </div>
+        <div class="float" style="max-width:290px">
+          <p class="text-xs font-bold opacity-80">Next up · <span id="miniCount">0/0</span> done</p>
+          <p class="serif text-lg font-black leading-tight mt-1 truncate" id="nextUp">Add a habit</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-[auto_1fr] gap-6 items-center mt-6 px-1">
+      <div class="flex flex-wrap gap-5">
+        <div class="text-center">
+          <div class="circle"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle id="c1r" class="prg" cx="60" cy="60" r="52"/></svg><b id="c1v" class="cv serif">0%</b></div>
+          <p class="cl">Completed</p>
+        </div>
+        <div class="text-center">
+          <div class="circle"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle id="c2r" class="prg" cx="60" cy="60" r="52"/></svg><b id="c2v" class="cv serif">0%</b></div>
+          <p class="cl">Avg progress</p>
+        </div>
+        <div class="text-center">
+          <div class="circle"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="trk" cx="60" cy="60" r="52"/><circle id="c3r" class="prg" cx="60" cy="60" r="52"/></svg><b id="c3v" class="cv serif">0m</b></div>
+          <p class="cl">Focus today</p>
+        </div>
+      </div>
+      <div>
+        <h2 class="serif text-3xl font-black" id="sumTitle">Today’s summary</h2>
+        <p class="mt-2 text-sm leading-relaxed max-w-xl" id="sumText"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HABITS -->
+  <section id="habits" class="mt-10">
+    <div class="flex items-end justify-between gap-3 mb-4">
+      <h2 class="serif text-3xl sm:text-4xl font-black">Your habits</h2>
+      <button type="button" class="btn btn-ghost js-add">+ New habit</button>
+    </div>
+    <ul id="list" class="grid gap-4" aria-label="Habits"></ul>
+  </section>
+
+  <!-- FOCUS -->
+  <section id="focus" class="frame mt-10">
+    <div class="panel-deep">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h2 class="serif text-3xl font-black">Focus session</h2>
+        <div class="seg" role="group" aria-label="Session type">
+          <button type="button" id="fpTimer" aria-pressed="true">Timer</button>
+          <button type="button" id="fpWatch" aria-pressed="false">Stopwatch</button>
+        </div>
+      </div>
+
+      <div class="grid md:grid-cols-[1fr_auto] gap-6 mt-5">
+        <div>
+          <label class="block text-sm font-bold mb-1" for="fpHabit">Habit</label>
+          <select id="fpHabit" class="field"></select>
+
+          <div id="fpCfg" class="mt-4">
+            <label class="block text-sm font-bold mb-1" for="fpMins">Timer length (minutes)</label>
+            <div class="flex flex-wrap items-center gap-2">
+              <input id="fpMins" class="field" style="width:96px" type="number" min="1" max="600" value="25">
+              <span id="fpPresets" class="flex gap-2">
+                <button type="button" class="chip" data-m="15">15</button>
+                <button type="button" class="chip" data-m="25">25</button>
+                <button type="button" class="chip" data-m="45">45</button>
+                <button type="button" class="chip" data-m="60">60</button>
+              </span>
+            </div>
+          </div>
+
+          <p class="text-sm mt-4 opacity-80" id="fpStatus"></p>
+        </div>
+
+        <div class="text-center md:text-right">
+          <div id="fpClock" class="clock serif" role="timer" aria-live="off">25:00</div>
+          <div class="flex flex-wrap gap-2 justify-center md:justify-end mt-4">
+            <button type="button" id="fpToggle" class="btn btn-soft">Start</button>
+            <button type="button" id="fpSave" class="btn btn-line">Finish &amp; save</button>
+            <button type="button" id="fpReset" class="btn btn-line">Discard</button>
+          </div>
+        </div>
+      </div>
+
+      <h3 class="serif text-xl font-black mt-7 mb-2">Recent sessions</h3>
+      <ul id="fpList" class="grid gap-2"></ul>
+    </div>
+  </section>
+
+  <!-- INSIGHTS -->
+  <section id="insights" class="mt-10 grid md:grid-cols-2 gap-4">
+    <div class="frame" style="padding:14px">
+      <div class="panel-deep h-full flex flex-col justify-center">
+        <div class="flex items-baseline justify-between gap-3">
+          <p class="font-bold">Average progress</p>
+          <p class="serif text-5xl font-black" id="avg">0%</p>
+        </div>
+        <div class="track relative h-6 rounded-full mt-7 mb-3">
+          <div id="avgBar" class="bench-fill h-full rounded-full" style="width:0%"></div>
+          <div id="target" class="target" style="left:80%"></div>
+        </div>
+        <div class="flex items-center justify-between text-sm gap-3">
+          <p class="font-bold" id="verdict">Add a habit to start</p>
+          <p>Target <span class="font-bold" id="targetVal">80%</span></p>
+        </div>
+        <label class="block mt-4 text-sm font-medium">Benchmark
+          <input id="targetRange" type="range" min="10" max="100" step="5" value="80" class="mt-2" aria-label="Benchmark target percent">
+        </label>
+      </div>
+    </div>
+
+    <div class="frame" style="padding:14px">
+      <div class="panel-soft h-full">
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 class="serif text-2xl font-black">Last 7 days</h2>
+          <div class="seg seg-soft" role="group" aria-label="Chart type">
+            <button type="button" id="chartDone" aria-pressed="true">Completion</button>
+            <button type="button" id="chartFocus" aria-pressed="false">Focus</button>
+          </div>
+        </div>
+        <div id="weekChart" class="flex gap-2"></div>
+        <dl class="grid grid-cols-3 gap-x-3 gap-y-4 text-sm mt-6">
+          <div><dt class="opacity-70">Longest streak</dt><dd class="serif text-xl font-black" id="bestStreak">0 days</dd></div>
+          <div><dt class="opacity-70">Perfect days</dt><dd class="serif text-xl font-black" id="perfect">0</dd></div>
+          <div><dt class="opacity-70">7-day average</dt><dd class="serif text-xl font-black" id="wkAvg">0%</dd></div>
+          <div><dt class="opacity-70">Focus today</dt><dd class="serif text-xl font-black" id="fToday">0m</dd></div>
+          <div><dt class="opacity-70">Focus this week</dt><dd class="serif text-xl font-black" id="fWeek">0m</dd></div>
+          <div><dt class="opacity-70">Focus this month</dt><dd class="serif text-xl font-black" id="fMonth">0m</dd></div>
+        </dl>
+      </div>
+    </div>
+  </section>
+
+  <p class="text-center text-xs mt-10 opacity-70">Tap the box to finish a habit, drag the slider for partial progress, tap a past day to backfill it.</p>
+
+  <footer class="text-center mt-8 text-sm">
+    <p class="serif text-lg font-black">Summit</p>
+    <p class="opacity-80 mt-1">© <span id="year">2026</span> Summit. All rights reserved.</p>
+  </footer>
+</main>
+
+<dialog id="aboutDlg" class="about-dialog">
+  <div class="about-content">
+    <p class="about-eyebrow">ONE STEP AT A TIME</p>
+
+    <h2 class="serif">About Summit</h2>
+
+    <p>
+      Summit is a personal habit and productivity tracker
+      designed to help you build consistent routines, stay
+      focused on your goals, and reflect on your progress.
+    </p>
+
+    <p>
+      Track your habits, monitor your streaks, and celebrate
+      small achievements. Every small step brings you closer
+      to your goals.
+    </p>
+
+    <button id="aboutClose" type="button" class="btn btn-deep">
+      Got it
+    </button>
+  </div>
+</dialog>
+<!-- NEW / EDIT HABIT -->
+<dialog id="dlg">
+  <form id="form" class="p-6 sm:p-8">
+    <h2 class="serif text-3xl font-black mb-5" id="dlgTitle">New habit</h2>
+
+    <label class="block text-sm font-bold mb-1" for="dTitle">Habit name</label>
+    <input id="dTitle" class="field" required maxlength="60" placeholder="e.g. Read 20 pages" autocomplete="off">
+
+    <label class="block text-sm font-bold mt-4 mb-1" for="dNote">Note (optional)</label>
+    <input id="dNote" class="field" maxlength="90" placeholder="Why it matters or how you’ll do it" autocomplete="off">
+
+    <label class="block text-sm font-bold mt-4 mb-1" for="dStart">Start date</label>
+    <input id="dStart" type="date" class="field">
+
+    <fieldset class="mt-4">
+      <legend class="text-sm font-bold mb-2">Style</legend>
+      <div id="swatches" class="flex gap-4"></div>
+    </fieldset>
+
+    <fieldset class="mt-5">
+      <legend class="text-sm font-bold">Focus time goals (all optional)</legend>
+      <p class="text-xs opacity-70 mb-2">Minutes to spend on this habit. Leave blank for no goal.</p>
+      <div class="grid grid-cols-3 gap-2">
+        <label class="text-xs font-bold">Per day<input id="dDay" class="field mt-1" type="number" min="0" max="1440" placeholder="none"></label>
+        <label class="text-xs font-bold">Per week<input id="dWeek" class="field mt-1" type="number" min="0" max="10080" placeholder="none"></label>
+        <label class="text-xs font-bold">Per month<input id="dMonth" class="field mt-1" type="number" min="0" max="44640" placeholder="none"></label>
+      </div>
+      <label class="flex items-start gap-2 mt-3 text-sm font-medium">
+        <input id="dReq" type="checkbox" class="mt-1">
+        <span>Require the daily goal before this habit can be completed</span>
+      </label>
+    </fieldset>
+
+    <div class="flex justify-end gap-3 mt-7">
+      <button type="button" id="cancel" class="btn btn-line-dark">Cancel</button>
+      <button type="submit" class="btn btn-deep">Save habit</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- QUOTE (shown after a focus session) -->
+<dialog id="qdlg" class="qdlg">
+  <div class="qwrap">
+    <span class="badge qicon" aria-hidden="true">✦</span>
+    <p class="qsub" id="qSub"></p>
+    <blockquote class="serif qtext">One day at a time.<br>One step at a time.</blockquote>
+    <button type="button" id="qClose" class="btn btn-deep">Keep going</button>
+  </div>
+</dialog>
+
+<script src="script.js?v=4"></script>
+<script src="sparkles.js?v=4"></script>
+</body>
+</html>
