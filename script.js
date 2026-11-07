@@ -185,7 +185,16 @@ window.PEAKS_VERSION = 4;
     }
     return null;
   }
-  function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {} }
+  var storageOk = true;
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify(state)); storageOk = true; }
+    catch (e) {
+      if (storageOk) {
+        storageOk = false;
+        toast('Saving is blocked in this browser. Your changes will be lost on refresh.');
+      }
+    }
+  }
 
   function seed() {
     var t = new Date(), L = function (n) { return key(addDays(t, n)); };
@@ -203,7 +212,10 @@ window.PEAKS_VERSION = 4;
         goal: { day: 0, week: 0, month: 0 }, required: false }
     ], target: 80, sessions: [] });
   }
-
+   // Warn on load if storage is unavailable, and ask the browser to keep data
+  try { localStorage.setItem('peaks.test', '1'); localStorage.removeItem('peaks.test'); }
+  catch (e) { setTimeout(function () { toast('This browser is blocking storage, so nothing will be saved. Try Live Server or a normal window.'); }, 600); }
+  if (navigator.storage && navigator.storage.persist) { navigator.storage.persist(); }
   var state = load() || seed();
   var celebrated = false, chartMode = 'done';
   var list = $('list');
@@ -313,8 +325,7 @@ window.PEAKS_VERSION = 4;
 
     var tk = todayKey();
     if (!state.habits.length) {
-      list.innerHTML = '<li class="frame text-center"><h3 class="serif text-2xl font-black">No habits yet</h3>' +
-        '<p class="mt-1">Press “New habit” to add your first one.</p></li>';
+      list.innerHTML = '';      // habitsfix.js shows the empty-state card
       return;
     }
     list.innerHTML = state.habits.map(function (h) { return cardHTML(h, tk); }).join('');
@@ -371,33 +382,18 @@ window.PEAKS_VERSION = 4;
     else if (diff === 0) v.textContent = 'Right on target';
     else v.textContent = Math.abs(diff) + ' points to reach target';
 
-    // 7-day chart (completion or focus)
-    var days = [], totals = [], perfect = 0, maxFocus = 1;
+        // 7-day stats (layout.js draws the chart itself)
+    var totals = [], perfect = 0;
     for (var i = 6; i >= 0; i--) {
-      var d = addDays(parse(tk), -i), k = key(d);
+      var k = key(addDays(parse(tk), -i));
       var active = hs.filter(function (h) { return h.start <= k; });
-      var val = null, foc = 0, all = true;
       if (active.length) {
-        var s = 0;
+        var s = 0, all = true;
         active.forEach(function (h) { var p = Math.min(P(h, k), 100); s += p; if (p < 100) all = false; });
-        val = Math.round(s / active.length);
-        totals.push(val);
+        totals.push(Math.round(s / active.length));
         if (all) perfect++;
       }
-      hs.forEach(function (h) { foc += secOn(h, k); });
-      if (foc > maxFocus) maxFocus = foc;
-      days.push({ d: d, val: val, foc: foc, today: i === 0 });
     }
-    $('weekChart').innerHTML = days.map(function (x) {
-      var h, label;
-      if (chartMode === 'done') { h = x.val || 0; label = x.val === null ? '–' : x.val + '%'; }
-      else { h = Math.round(x.foc / maxFocus * 100); label = x.foc ? fmtDur(x.foc) : '–'; }
-      return '<div class="flex flex-col items-center gap-2 flex-1">' +
-        '<span class="text-xs font-bold">' + label + '</span>' +
-        '<div class="wbar-track"><div class="wbar" style="height:' + h + '%"></div></div>' +
-        '<span class="text-xs font-bold' + (x.today ? ' underline' : '') + '">' +
-          (x.today ? 'Today' : x.d.toLocaleDateString('en-US', { weekday: 'short' })) + '</span></div>';
-    }).join('');
     $('chartDone').setAttribute('aria-pressed', chartMode === 'done');
     $('chartFocus').setAttribute('aria-pressed', chartMode === 'focus');
 
@@ -415,7 +411,9 @@ window.PEAKS_VERSION = 4;
     if (allDone) {
       $('bannerMsg').textContent = 'All ' + n + (n === 1 ? ' habit' : ' habits') + ' done today, with ' + avg + '% average progress against your ' + state.target + '% target.';
       if (!celebrated) { celebrated = true; confetti(); }
-    } else celebrated = false;
+        } else celebrated = false;
+
+    window.dispatchEvent(new Event('peaks:stats'));      // layout.js redraws the 7-day chart
   }
 
   function renderAll() { renderList(); renderStats(); renderFocus(); }
@@ -478,9 +476,11 @@ window.PEAKS_VERSION = 4;
   });
 
   /* ---------- Quote card (after a focus session) ---------- */
+  
   var qdlg = $('qdlg');
   function openQuote(h, sec) {
     $('qSub').textContent = fmtDur(sec) + ' of focus saved to “' + h.title + '”';
+    if (window.SummitQuotes) SummitQuotes.showEnd();
     if (typeof qdlg.showModal === 'function') { if (!qdlg.open) qdlg.showModal(); }
     else qdlg.setAttribute('open', '');
     $('qClose').focus();
@@ -493,21 +493,21 @@ window.PEAKS_VERSION = 4;
   qdlg.addEventListener('click', function (e) { if (e.target === qdlg) closeQuote(); });
 
   /* ---------- Focus sessions (timer / stopwatch) ---------- */
-  function loadSess() {
+   function loadSess() {
     try {
       var s = JSON.parse(localStorage.getItem(SESS));
       if (s && typeof s === 'object') {
         return { hid: s.hid || null, mode: s.mode === 'stopwatch' ? 'stopwatch' : 'timer',
-                 dur: +s.dur > 0 ? +s.dur : 1500, acc: +s.acc || 0, t0: s.t0 || null };
+                 dur: +s.dur > 0 ? +s.dur : 1500, acc: +s.acc || 0, t0: s.t0 || null, begin: +s.begin || null };
       }
     } catch (e) {}
-    return { hid: null, mode: 'timer', dur: 1500, acc: 0, t0: null };
+    return { hid: null, mode: 'timer', dur: 1500, acc: 0, t0: null, begin: null };
   }
   var sess = loadSess();
   function saveSess() { try { localStorage.setItem(SESS, JSON.stringify(sess)); } catch (e) {} }
   function elapsed() { return sess.acc + (sess.t0 ? (Date.now() - sess.t0) / 1000 : 0); }
   function active() { return sess.t0 !== null || sess.acc > 0; }
-  function resetSess() { sess.acc = 0; sess.t0 = null; saveSess(); }
+  function resetSess() { sess.acc = 0; sess.t0 = null; sess.begin = null; saveSess(); }
 
   var actx = null;
   function ensureAudio() {
@@ -528,10 +528,10 @@ window.PEAKS_VERSION = 4;
     });
   }
 
-  function addTime(h, sec) {
+  function addTime(h, sec,begin) {
     var tk = todayKey();
     h.time[tk] = (h.time[tk] || 0) + sec;
-    state.sessions.unshift({ hid: h.id, title: h.title, at: Date.now(), sec: sec });
+        state.sessions.unshift({ hid: h.id, title: h.title, at: Date.now(), sec: sec, begin: begin || 0 });
     state.sessions = state.sessions.slice(0, 30);
     save();
     if (h.required && h.goal.day && remain(h, tk) === 0 && P(h, tk) < 100) {
@@ -545,11 +545,12 @@ window.PEAKS_VERSION = 4;
     var h = find(sess.hid);
     var sec = Math.round(elapsed());
     if (sess.mode === 'timer' && (auto || sec > sess.dur)) sec = sess.dur;
+    var begin = sess.begin || 0;
     resetSess();
     if (!h) { toast('That habit no longer exists'); renderFocus(); return; }
     if (sec < 10) { toast('Too short to save (under 10 seconds)'); renderFocus(); return; }
     if (auto) beep();
-    addTime(h, sec);
+    addTime(h, sec, begin);
     openQuote(h, sec);          // show the quote after every saved session
   }
 
@@ -613,7 +614,7 @@ window.PEAKS_VERSION = 4;
     if (!sess.hid) { toast('Pick a habit first'); return; }
     ensureAudio();
     if (sess.t0) { sess.acc = elapsed(); sess.t0 = null; }
-    else sess.t0 = Date.now();
+        else { if (!sess.acc) sess.begin = Date.now(); sess.t0 = Date.now(); }
     saveSess(); renderFocus();
   });
   $('fpSave').addEventListener('click', function () { if (active()) finish(false); });
