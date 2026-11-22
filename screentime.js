@@ -151,14 +151,15 @@
     var total = Math.max(d.total || 0, sum);
     return { has: total > 0, total: total, waste: Math.min(sum, total), sum: sum, items: d.items };
   }
-  function firstDay() {
-    var f = S.since;
-    Object.keys(S.days).forEach(function (k) { if (k < f && dayData(k).has) f = k; });
+  function firstDay() {          // the first day you actually logged something
+    var f = '';
+    Object.keys(S.days).forEach(function (k) { if (dayData(k).has && (!f || k < f)) f = k; });
     return f;
   }
-  function missing() {            // days without an entry, oldest first, from your first day up to yesterday
+  function missing() {           // gaps after your first logged day, up to yesterday, last 14 days only
     var out = [], f = firstDay(), t = todayKey();
-    for (var i = 29; i >= 1; i--) { var k = shift(t, -i); if (k >= f && !dayData(k).has) out.push(k); }
+    if (!f) return out;
+    for (var i = 14; i >= 1; i--) { var k = shift(t, -i); if (k >= f && !dayData(k).has) out.push(k); }
     return out;
   }
   function logStreak() {
@@ -416,7 +417,7 @@
     var x = dayData(sel), limit = S.limit, out = [];
     var useful = x.total - x.waste, pct = x.total ? Math.round(x.waste / x.total * 100) : 0;
     var verdict;
-    if (!x.has) verdict = 'Nothing logged for this day yet. Enter your numbers on the left.';
+    if (!x.has) verdict = 'Nothing logged yet. Add your numbers to get started.';
     else if (x.waste === 0) verdict = 'No wasted screen time. Protect that.';
     else if (x.waste <= limit) verdict = 'Within your limit. ' + pct + '% of your screen time went on things that don’t matter.';
     else verdict = fmt(x.waste) + ' went on things that don’t matter, ' + fmt(x.waste - limit) + ' over your limit.';
@@ -450,26 +451,23 @@
       if (x.waste > 0) out.push(couldHtml(x.waste, sel));
     }
 
-    /* last 7 or 30 days */
+    /* last 7 or 30 days: nothing to chart until the first day is logged */
     var rng = S.range, c = chartData(rng), streak = logStreak();
     var hasAny = Object.keys(S.days).some(function (k) { return dayData(k).has; });
-    out.push('<div class="flex flex-wrap items-center justify-between gap-2" style="margin-top:16px"><p class="h4" style="margin:0">Last ' + rng + ' days</p>' +
-      '<div class="seg" role="group" aria-label="Range">' +
-        '<button type="button" data-range="7" aria-pressed="' + (rng === 7) + '">7 days</button>' +
-        '<button type="button" data-range="30" aria-pressed="' + (rng === 30) + '">30 days</button></div></div>');
-    out.push('<div style="margin-top:8px">' + c.svg + '</div>' +
-      '<p class="tiny mt-2"><span class="lgd"></span>Didn’t matter<span class="lgd s1" style="margin-left:14px"></span>Total screen time</p>' +
-      '<p class="tiny mt-1 opacity-70">Logged ' + c.logged + ' of ' + rng + ' days' + (streak ? ' · logging streak ' + streak + (streak === 1 ? ' day' : ' days') : '') + '</p>');
-
-    /* days you didn't log */
-    var miss = missing();
-    if (miss.length) {
-      out.push('<p class="h4">Not logged (' + miss.length + ')</p><div class="mchips">' +
-        miss.slice(-12).reverse().map(function (k) { return '<button type="button" class="mchip" data-day="' + k + '">' + shortDay(k) + '</button>'; }).join('') +
-        (miss.length > 12 ? '<span class="tiny">+' + (miss.length - 12) + ' older</span>' : '') + '</div>' +
-        '<p class="tiny opacity-70 mt-1">Tap a day to fill it in.</p>');
-    } else if (hasAny) {
-      out.push('<p class="text-sm mt-3"><b>Every day is logged.</b> Nice.</p>');
+    if (hasAny) {
+      out.push('<div class="flex flex-wrap items-center justify-between gap-2" style="margin-top:16px"><p class="h4" style="margin:0">Last ' + rng + ' days</p>' +
+        '<div class="seg" role="group" aria-label="Range">' +
+          '<button type="button" data-range="7" aria-pressed="' + (rng === 7) + '">7 days</button>' +
+          '<button type="button" data-range="30" aria-pressed="' + (rng === 30) + '">30 days</button></div></div>');
+      out.push('<div style="margin-top:8px">' + c.svg + '</div>' +
+        '<p class="tiny mt-2"><span class="lgd"></span>Didn’t matter<span class="lgd s1" style="margin-left:14px"></span>Total screen time</p>' +
+        '<p class="tiny mt-1 opacity-70">Logged ' + c.logged + ' of ' + rng + ' days' + (streak ? ' · logging streak ' + streak + (streak === 1 ? ' day' : ' days') : '') + '</p>');
+      var miss = missing();
+      if (miss.length) {
+        out.push('<details class="miss"><summary>' + miss.length + (miss.length === 1 ? ' day' : ' days') + ' not logged</summary><div class="mchips">' +
+          miss.slice(-7).reverse().map(function (k) { return '<button type="button" class="mchip" data-day="' + k + '">' + shortDay(k) + '</button>'; }).join('') +
+          (miss.length > 7 ? '<span class="tiny">+' + (miss.length - 7) + ' older</span>' : '') + '</div></details>');
+      } else out.push('<p class="text-sm mt-3"><b>Every day is logged.</b> Nice.</p>');
     }
 
         if (c.logged) { lastCost = { c: c, rng: rng }; out.push(costButton(c, rng)); } else lastCost = null;

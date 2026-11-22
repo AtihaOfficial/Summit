@@ -383,7 +383,7 @@
         { title: 'Log today’s screen time', body: 'Open Screen Time on your phone, then enter the numbers so you can see what mattered.', go: 'screen', kind: 'warn' });
 
       if (S.sMiss) {
-        var first = sd.since || tk;
+        var first = tk;
         Object.keys(sdays).forEach(function (k) { if (logged(k) && k < first) first = k; });
         var gone = [];
         for (var i = 30; i >= 1; i--) {
