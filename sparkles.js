@@ -29,7 +29,7 @@
   function resize() {
     W = cv.width = innerWidth * dpr;
     H = cv.height = innerHeight * dpr;
-    var n = Math.round(Math.min(90, Math.max(35, (innerWidth * innerHeight) / 16000)));
+    var n = Math.round(Math.min(90, Math.max(35, (innerWidth * innerHeight) / 1600)));
     stars = [];
     for (var i = 0; i < n; i++) stars.push(make());
     if (reduce) draw(0);

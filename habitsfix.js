@@ -7,18 +7,17 @@
   /* ---------- one tidy left column, Focus card on the right ---------- */
   var cols = pane.querySelector('.cols2');
   var stack = pane.querySelector('.stack');
-  var bench = $('avg') ? $('avg').closest('section') : null;
   var week = $('weekChart') ? $('weekChart').closest('section') : null;
+  var bench = $('avg') ? $('avg').closest('section') : null;     // old Average progress card, only if it is still in index.html
 
-  if (cols && stack && bench && week && list.parentNode === cols && !cols.querySelector('.hmain')) {
+  if (cols && stack && week && list.parentNode === cols && !cols.querySelector('.hmain')) {
     var main = document.createElement('div');
     main.className = 'hmain';
     cols.insertBefore(main, list);
     main.appendChild(list);
-    bench.classList.add('hextra');
     week.classList.add('hextra');
     main.appendChild(week);
-    main.appendChild(bench);
+    if (bench) { bench.classList.add('hextra'); main.appendChild(bench); }
     cols.appendChild(focus);
     stack.remove();
   }
@@ -31,9 +30,7 @@
     '<h3 class="serif">No habits yet</h3>' +
     '<p>A habit is one small thing you repeat every day. Start with one, then build from there.</p>' +
     '<button type="button" class="btn btn-deep js-add">+ Add your first habit</button>' +
-    '<p class="hint">Or start from an idea:</p><div class="hempty-chips">' +
-    IDEAS.map(function (t) { return '<button type="button" class="chip" data-suggest="' + t + '">' + t + '</button>'; }).join('') +
-    '</div></div></li>';
+    '</div></li>';
 
   function sync() {
     var has = !!list.querySelector('.habit');

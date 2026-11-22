@@ -196,21 +196,8 @@ window.PEAKS_VERSION = 4;
     }
   }
 
-  function seed() {
-    var t = new Date(), L = function (n) { return key(addDays(t, n)); };
-    var a = {}, b = {}, c = {}, ta = {}, tb = {};
-    a[L(-3)] = 100; a[L(-2)] = 100; a[L(-1)] = 100; a[L(0)] = 40;
-    b[L(-1)] = 100; b[L(0)] = 15;
-    ta[L(-3)] = 1800; ta[L(-2)] = 1500; ta[L(-1)] = 1900; ta[L(0)] = 600;
-    tb[L(-1)] = 1800;
-    return norm({ habits: [
-      { id: uid() + 'a', title: 'Read 20 pages',       note: 'Any book counts', start: L(-4), color: 0, log: a, time: ta,
-        goal: { day: 30, week: 150, month: 600 }, required: false },
-      { id: uid() + 'b', title: 'Move for 30 minutes', note: 'Walk, stretch or lift', start: L(-2), color: 1, log: b, time: tb,
-        goal: { day: 0, week: 120, month: 0 }, required: false },
-      { id: uid() + 'c', title: 'Plan tomorrow',       note: 'Three priorities, written down', start: L(0), color: 2, log: c, time: {},
-        goal: { day: 0, week: 0, month: 0 }, required: false }
-    ], target: 80, sessions: [] });
+  function seed() {                                  // a brand-new visitor starts with no habits
+    return norm({ habits: [], target: 80, sessions: [] });
   }
    // Warn on load if storage is unavailable, and ask the browser to keep data
   try { localStorage.setItem('peaks.test', '1'); localStorage.removeItem('peaks.test'); }
@@ -370,18 +357,6 @@ window.PEAKS_VERSION = 4;
     else if (done === n) $('sumText').textContent = 'Every habit is done today. You spent ' + fmtDur(fToday) + ' in focus. Enjoy the view from the top.';
     else $('sumText').textContent = (n - done) + (n - done === 1 ? ' habit is' : ' habits are') + ' left today. Next up: ' + nextH.title + '. Focus time so far: ' + fmtDur(fToday) + '.';
 
-    // Benchmark
-    $('avg').textContent = avg + '%';
-    $('avgBar').style.width = avg + '%';
-    $('target').style.left = state.target + '%';
-    $('targetVal').textContent = state.target + '%';
-    $('targetRange').value = state.target;
-    var diff = avg - state.target, v = $('verdict');
-    if (!n) v.textContent = 'Add a habit to start';
-    else if (diff > 0) v.textContent = diff + ' points ahead of target';
-    else if (diff === 0) v.textContent = 'Right on target';
-    else v.textContent = Math.abs(diff) + ' points to reach target';
-
         // 7-day stats (layout.js draws the chart itself)
     var totals = [], perfect = 0;
     for (var i = 6; i >= 0; i--) {
@@ -409,7 +384,7 @@ window.PEAKS_VERSION = 4;
     var allDone = n > 0 && done === n;
     $('banner').classList.toggle('show', allDone);
     if (allDone) {
-      $('bannerMsg').textContent = 'All ' + n + (n === 1 ? ' habit' : ' habits') + ' done today, with ' + avg + '% average progress against your ' + state.target + '% target.';
+      $('bannerMsg').textContent = 'All ' + n + (n === 1 ? ' habit' : ' habits') + ' done today. Great work.';
       if (!celebrated) { celebrated = true; confetti(); }
         } else celebrated = false;
 
@@ -470,10 +445,6 @@ window.PEAKS_VERSION = 4;
     renderStats();
   });
   list.addEventListener('change', function (e) { if (e.target.type === 'range') renderList(); });
-
-  $('targetRange').addEventListener('input', function (e) {
-    state.target = +e.target.value; save(); renderStats();
-  });
 
   /* ---------- Quote card (after a focus session) ---------- */
   

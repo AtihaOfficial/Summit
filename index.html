@@ -40,7 +40,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&family=Playfair+Display:wght@700;900&display=swap">
-<link rel="stylesheet" href="style.css?v=23">
+<link rel="stylesheet" href="style.css?v=32">
 </head>
 <body>
 <div id="errbar" role="alert" style="display:none;position:fixed;top:0;left:0;right:0;z-index:100;background:#b00020;color:#fff;padding:10px 14px;font:600 13px/1.4 system-ui,sans-serif"></div>
@@ -169,8 +169,8 @@
       <ul id="list" class="grid gap-3" aria-label="Habits"></ul>
 
       <div class="stack">
-        <section id="focus" class="panel-deep">
-          <div class="flex items-center justify-between gap-2">
+                <section id="focus" class="panel-deep fsess">
+          <div class="fs-head">
             <h2 class="h3">Focus session</h2>
             <div class="seg" role="group" aria-label="Session type">
               <button type="button" id="fpTimer" aria-pressed="true">Timer</button>
@@ -178,51 +178,36 @@
             </div>
           </div>
 
+          <div class="fs-fields">
+            <div class="fs-f">
+              <label class="lbl" for="fpHabit">Habit</label>
+              <select id="fpHabit" class="field"></select>
+            </div>
+            <div class="fs-f" id="fpCfg">
+              <label class="lbl" for="fpMins">Timer length</label>
+              <div class="fs-lenrow">
+                <input id="fpMins" class="field" type="number" min="1" max="600" value="25" aria-label="Timer length in minutes">
+                <span class="fs-unit">min</span>
+                <span id="fpPresets" class="chiprow">
+                  <button type="button" class="chip" data-m="15">15</button>
+                  <button type="button" class="chip" data-m="25">25</button>
+                  <button type="button" class="chip" data-m="45">45</button>
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div id="fpClock" class="clock serif" role="timer" aria-live="off">25:00</div>
           <div class="btnrow">
-            <button type="button" id="fpToggle" class="btn btn-soft btn-sm">Start</button>
+            <button type="button" id="fpToggle" class="btn btn-soft">Start</button>
             <button type="button" id="fpSave" class="btn btn-line btn-sm">Finish &amp; save</button>
             <button type="button" id="fpReset" class="btn btn-line btn-sm">Discard</button>
           </div>
 
-          <label class="lbl" for="fpHabit">Habit</label>
-          <select id="fpHabit" class="field"></select>
-
-          <div id="fpCfg">
-            <label class="lbl" for="fpMins">Timer length (minutes)</label>
-            <div class="flex flex-wrap items-center gap-2">
-              <input id="fpMins" class="field" style="width:84px" type="number" min="1" max="600" value="25">
-              <span id="fpPresets" class="flex gap-2">
-                <button type="button" class="chip" data-m="15">15</button>
-                <button type="button" class="chip" data-m="25">25</button>
-                <button type="button" class="chip" data-m="45">45</button>
-                <button type="button" class="chip" data-m="60">60</button>
-              </span>
-            </div>
-          </div>
-
-          <p class="hint mt-2" id="fpStatus"></p>
-          <h3 class="h4">Recent sessions</h3>
-          <ul id="fpList" class="grid gap-2"></ul>
-        </section>
-
-        <section class="card">
-          <details class="fold" id="foldAvg">
-            <summary>
-              <h2 class="h3">Average progress</h2>
-              <span class="serif num" id="avg">0%</span>
-            </summary>
-            <div class="track relative">
-              <div id="avgBar" class="bench-fill" style="width:0%"></div>
-              <div id="target" class="target" style="left:80%"></div>
-            </div>
-            <div class="flex items-center justify-between gap-3 mt-2">
-              <p class="font-bold" id="verdict">Add a habit to start</p>
-              <p>Target <span class="font-bold" id="targetVal">80%</span></p>
-            </div>
-            <label class="lbl">Benchmark
-              <input id="targetRange" type="range" min="10" max="100" step="5" value="80" aria-label="Benchmark target percent">
-            </label>
+          <p class="hint fs-status" id="fpStatus"></p>
+          <details class="fold fs-recent">
+            <summary><h3 class="h4">Recent sessions</h3></summary>
+            <ul id="fpList" class="grid gap-2"></ul>
           </details>
         </section>
 
@@ -266,22 +251,25 @@
   </footer>
 </main>
 
-<dialog id="aboutDlg" class="about-dialog">
-  <div class="about-content">
-    <p class="about-eyebrow">ONE STEP AT A TIME</p>
-    <h2 class="serif">About Summit</h2>
-    <p>
-      Summit is a personal habit and productivity tracker designed to help you
-      build consistent routines, stay focused on your goals, and reflect on
-      your progress.
-    </p>
-    <p>
-      Track your habits, monitor your streaks, and celebrate small
-      achievements. Every small step brings you closer to your goals.
-    </p>
-    <button id="aboutClose" type="button" class="btn btn-deep">Got it</button>
-  </div>
-</dialog>
+   <dialog id="aboutDlg" class="about-dialog">
+     <div class="about-content">
+       <p class="about-eyebrow">ONE STEP AT A TIME</p>
+       <h2 class="serif">About Summit</h2>
+       <p>Summit is a simple habit, task and focus tracker. It helps you show up every day, finish what matters and watch your progress grow.</p>
+       <ul class="about-list">
+         <li><b>Habits</b> Daily habits with streaks, a 21-day plan and a 7-day view.</li>
+         <li><b>Tasks</b> A priority queue with deadlines, so the most urgent task comes first.</li>
+         <li><b>Focus</b> Timer or stopwatch with breaks, full screen, a float window and 12 colours.</li>
+         <li><b>Screen</b> A quick screen-time check.</li>
+         <li><b>Quotes</b> Your own reminder to start and finish with.</li>
+       </ul>
+       <p class="about-note">Your habits, tasks and settings stay in this browser.</p>
+       <div class="about-actions">
+         <button type="button" class="btn btn-deep" data-tour>Take the tour</button>
+         <button id="aboutClose" type="button" class="btn btn-line-dark">Got it</button>
+       </div>
+     </div>
+   </dialog>
 
 <!-- NEW / EDIT HABIT -->
 <dialog id="dlg">
@@ -335,7 +323,7 @@
 </dialog>
 
 <!-- Order matters: script.js first, linechart.js before the files that draw charts, layout.js near the end -->
-<script src="script.js?v=5"></script>
+<script src="script.js?v=6"></script>
 <script src="linechart.js?v=8"></script>
 <script src="pause.js?v=17"></script>
 <script src="tasks.js?v=21"></script>
@@ -343,13 +331,16 @@
 <script src="habittimes.js?v=18"></script>
 <script src="quotes.js?v=18"></script>
 <script src="layout.js?v=18"></script>
-<script src="taskfocus.js?v=13"></script>
+<script src="taskfocus.js?v=14"></script>
 <script src="wizard.js?v=17"></script>
-<script src="habitsfix.js?v=14"></script>
+<script src="habitsfix.js?v=15"></script>
 <script src="plan.js?v=18"></script>
 <script src="archive.js?v=16"></script>
-<script src="alerts.js?v=18"></script>
-<script src="breaks.js?v=1"></script>
+<script src="alerts.js?v=21"></script>
+<script src="focusview.js?v=6"></script>
+<script src="breaks.js?v=2"></script>
+<script src="boost.js?v=1"></script>
+<script src="tour.js?v=1"></script>
 <script src="sparkles.js?v=4"></script>
 </body>
 </html>

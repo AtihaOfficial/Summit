@@ -158,39 +158,34 @@
 
   /* ---------- the task focus card ---------- */
   var html =
-    '<section id="tfocus" class="panel-deep">' +
-      '<div class="flex flex-wrap items-center justify-between gap-2">' +
-        '<div><h3 class="h3">Task focus session</h3>' +
-        '<p class="hint">Separate from your habit timer. Saved time counts toward Focus today.</p></div>' +
+    '<section id="tfocus" class="panel-deep fsess">' +
+      '<div class="fs-head">' +
+        '<h3 class="h3">Task focus session</h3>' +
         '<div class="seg" role="group" aria-label="Session type">' +
           '<button type="button" id="tfTimer" aria-pressed="true">Timer</button>' +
           '<button type="button" id="tfWatch" aria-pressed="false">Stopwatch</button></div>' +
       '</div>' +
-      '<div class="grid md:grid-cols-2 gap-4 mt-3">' +
-        '<div>' +
-          '<label class="lbl" for="tfTask" style="margin-top:0">Working on</label>' +
-          '<select id="tfTask" class="field"></select>' +
-          '<div id="tfCfg"><label class="lbl" for="tfMins">Timer length (minutes)</label>' +
-            '<div class="flex flex-wrap items-center gap-2">' +
-              '<input id="tfMins" class="field" style="width:84px" type="number" min="1" max="600" value="25">' +
-              '<span id="tfPresets" class="flex gap-2">' +
-                '<button type="button" class="chip" data-m="15">15</button>' +
-                '<button type="button" class="chip" data-m="25">25</button>' +
-                '<button type="button" class="chip" data-m="45">45</button>' +
-                '<button type="button" class="chip" data-m="60">60</button></span>' +
-            '</div></div>' +
-          '<p class="hint mt-2" id="tfStatus"></p>' +
-        '</div>' +
-        '<div>' +
-          '<div id="tfClock" class="clock serif" role="timer" aria-live="off">25:00</div>' +
-          '<div class="btnrow">' +
-            '<button type="button" id="tfToggle" class="btn btn-soft btn-sm">Start</button>' +
-            '<button type="button" id="tfSave" class="btn btn-line btn-sm">Finish &amp; save</button>' +
-            '<button type="button" id="tfReset" class="btn btn-line btn-sm">Discard</button></div>' +
-        '</div>' +
+      '<div class="fs-fields">' +
+        '<div class="fs-f"><label class="lbl" for="tfTask">Working on</label>' +
+          '<select id="tfTask" class="field"></select></div>' +
+        '<div class="fs-f" id="tfCfg"><label class="lbl" for="tfMins">Timer length</label>' +
+          '<div class="fs-lenrow">' +
+            '<input id="tfMins" class="field" type="number" min="1" max="600" value="25" aria-label="Timer length in minutes">' +
+            '<span class="fs-unit">min</span>' +
+            '<span id="tfPresets" class="chiprow">' +
+              '<button type="button" class="chip" data-m="15">15</button>' +
+              '<button type="button" class="chip" data-m="25">25</button>' +
+              '<button type="button" class="chip" data-m="45">45</button></span>' +
+          '</div></div>' +
       '</div>' +
-      '<h3 class="h4">Recent task sessions</h3>' +
-      '<ul id="tfList" class="grid gap-2"></ul>' +
+      '<div id="tfClock" class="clock serif" role="timer" aria-live="off">25:00</div>' +
+      '<div class="btnrow">' +
+        '<button type="button" id="tfToggle" class="btn btn-soft">Start</button>' +
+        '<button type="button" id="tfSave" class="btn btn-line btn-sm">Finish &amp; save</button>' +
+        '<button type="button" id="tfReset" class="btn btn-line btn-sm">Discard</button></div>' +
+      '<p class="hint fs-status" id="tfStatus"></p>' +
+      '<details class="fold fs-recent"><summary><h3 class="h4">Recent task sessions</h3></summary>' +
+        '<ul id="tfList" class="grid gap-2"></ul></details>' +
     '</section>';
 
   var old = $('tfocus'); if (old) old.remove();                 // never leave a duplicate or half-built card behind

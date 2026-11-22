@@ -23,7 +23,7 @@
     ['Another proof that you can do hard things.', 'end'],
     ['That was easier than the dread of starting it. Remember this next time.', 'end']
   ];
-  var EVERY = [1, 2, 3, 5, 10, 15, 20, 30, 45, 60], MAX = 500, MAXLEN = 220, MAXPIC = 40;
+  var EVERY = [15], MAX = 500, MAXLEN = 220, MAXPIC = 40;
   var WHEN = { both: 'Anytime', run: 'While focusing', end: 'At the end' };
 
   function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
@@ -62,7 +62,7 @@
       if (s.endOrder === 'seq') o.endOrder = 'seq';
       if (Array.isArray(s.list)) o.list = s.list.filter(function (x) { return x && (x.text || x.img); }).map(clean);
     }
-    if (!o.list) o.list = starter();
+    if (!o.list) o.list = [];
     return o;
   })();
   function save() {

@@ -63,7 +63,7 @@
   /* ---------- settings ---------- */
   var DEF = {
     on: true, sound: true,
-    tickTimer: false, tickWatch: false, vol: 0.4, nudge: 0,
+        tickTimer: false, tickWatch: false, tickSound: 'soft', vol: 0.4, nudge: 0,
     hOpen: true, hSoon: 10, hMiss: true, eve: true, eveT: '21:00', rem: {},
     tLeads: [60, 10], tCustom: 0, tStart: true, tMiss: true,
     sOn: true, sT: '21:00', sMiss: true
@@ -114,16 +114,49 @@
       o.start(t); o.stop(t + 0.4);
     });
   }
-  function tick(sec) {
-    var c = audio();
-    if (!c || c.state !== 'running') return;
-    var t = c.currentTime, o = c.createOscillator(), g = c.createGain();
-    o.type = 'sine'; o.frequency.value = sec % 2 ? 1150 : 1550;
+  /* ---------- ticking sounds ---------- */
+  var TICK_NAMES = [['soft', 'Soft tick'], ['clock', 'Clock'], ['wood', 'Wood block'], ['drop', 'Water drop'],
+                   ['digital', 'Digital beep'], ['heart', 'Heartbeat'], ['chime', 'Tiny bell'], ['click', 'Mechanical click'], ['water', 'Water wave']];
+  function tone(c, type, f0, f1, t, peak, dur) {
+    var o = c.createOscillator(), g = c.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t);
+    if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
     o.connect(g); g.connect(c.destination);
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(Math.max(0.002, S.vol * 0.5), t + 0.004);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-    o.start(t); o.stop(t + 0.06);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.002, peak), t + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.start(t); o.stop(t + dur + 0.02);
+  }
+  function burst(c, t, peak, dur, freq) {
+    var len = Math.max(1, Math.floor(c.sampleRate * dur)), buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0), i;
+    for (i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    var src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = buf; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 1.2;
+    src.connect(f); f.connect(g); g.connect(c.destination);
+    g.gain.setValueAtTime(Math.max(0.002, peak), t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.start(t);
+  }
+  var SOUNDS = {
+    soft:    function (c, t, n, v) { var f = n % 2 ? 1150 : 1550; tone(c, 'sine', f, f, t, v * 0.5, 0.05); },
+    clock:   function (c, t, n, v) { burst(c, t, v * 1.2, 0.03, n % 2 ? 1800 : 1200); },
+    wood:    function (c, t, n, v) { tone(c, 'sine', n % 2 ? 900 : 700, n % 2 ? 420 : 320, t, v * 0.9, 0.09); },
+    drop:    function (c, t, n, v) { tone(c, 'sine', 420, 980, t, v * 0.7, 0.12); },
+    digital: function (c, t, n, v) { var f = n % 2 ? 1700 : 1400; tone(c, 'square', f, f, t, v * 0.18, 0.04); },
+    heart:   function (c, t, n, v) { tone(c, 'triangle', 120, 60, t, v * 1.4, 0.14); tone(c, 'triangle', 110, 55, t + 0.2, v * 1.1, 0.16); },
+    chime:   function (c, t, n, v) { var f = n % 2 ? 2093 : 2637; tone(c, 'sine', f, f, t, v * 0.5, 0.35); },
+    click:   function (c, t, n, v) { burst(c, t, v * 1.5, 0.012, 3200); }
+  };
+    function tick(sec, force) {
+    var c = audio();
+    if (!c || c.state !== 'running') return;
+    var B = window.SummitBlocks;
+    if (S.tickSound === 'water') {
+      if (force && B) { B.splash(sec % 2 === 1, S.vol); return; }   // preview
+      if (B && B.on()) return;                                       // Blocks view: the wave plays once per box
+      SOUNDS.drop(c, c.currentTime, sec, S.vol); return;             // Digits view: a soft drop each second
+    }
+    (SOUNDS[S.tickSound] || SOUNDS.soft)(c, c.currentTime, sec, S.vol);
   }
 
   /* ---------- bell button + popup stack ---------- */
@@ -147,10 +180,14 @@
     b.textContent = n > 9 ? '9+' : String(n);
   }
 
-  function sys(o) {
+  function sys(o) {                                          // a system notification: shows over every window and tab
     if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    var fav = document.getElementById('favicon');
+    var opt = { body: o.body || '', tag: 'summit-' + o.title, silent: true, icon: fav ? fav.href : undefined };
     try {
-      var n = new Notification(o.title, { body: o.body || '', tag: 'summit-' + o.title });
+      var n;
+      try { n = new Notification(o.title, o.img ? Object.assign({ image: o.img }, opt) : opt); }
+      catch (e1) { n = new Notification(o.title, { body: opt.body, tag: opt.tag }); }
       n.onclick = function () { window.focus(); n.close(); };
     } catch (e) {}
   }
@@ -182,8 +219,19 @@
       if (e.target.closest('.alert-x') || e.target.closest('[data-go]')) { clearTimeout(tm); card.remove(); }
     });
     if (!o.silent) chime();
+    if (window.SummitFloat) SummitFloat.notify(o);
     if (o.sysForce || document.hidden || !document.hasFocus()) sys(o);
   }
+    window.SummitSound = {                                      // used by the full screen timer view
+    list: TICK_NAMES,
+    get: function () { return S.tickSound; },
+    set: function (v) { S.tickSound = v; saveS(); },
+    isOn: function (mode) { return mode === 'stopwatch' ? !!S.tickWatch : !!S.tickTimer; },
+    setOn: function (mode, on) { if (mode === 'stopwatch') S.tickWatch = on; else S.tickTimer = on; saveS(); },
+        vol: function () { return S.vol; },
+    preview: function () { audio(); tick(0, true); setTimeout(function () { tick(1, true); }, 600); }
+   
+  };
   window.SummitAlert = function (o) { popup(o, true); };      // the Quotes tab uses this for its test button
 
   /* ---------- timers and stopwatches (habit + task) ---------- */
@@ -422,6 +470,7 @@
         row('Ticking: timers', 'A soft tick every second.', tg('aTickT', 'Ticking during timers')) +
         row('Ticking: stopwatches', 'A soft tick every second.', tg('aTickW', 'Ticking during stopwatches')) +
         row('Tick volume', '', '<span class="vol"><input type="range" id="aVol" min="5" max="100" step="5" aria-label="Tick volume"><button type="button" class="btn btn-line-dark btn-sm" id="aTry">Try</button></span>') +
+        row('Tick sound', 'Pick how the ticking sounds. Press Try to hear it.', sel('aTickS', 'Tick sound', TICK_NAMES)) +
         row('Stopwatch check-in', 'A popup every so often while a stopwatch runs.', sel('aNudge', 'Stopwatch check-in', [['0', 'Off'], ['15', 'Every 15 min'], ['30', 'Every 30 min'], ['45', 'Every 45 min'], ['60', 'Every 60 min'], ['90', 'Every 90 min']])) +
         row('Motivation quotes', 'Your own quotes, sent every few minutes while you focus.', '<button type="button" class="btn btn-line-dark btn-sm" data-goq>Open Quotes</button>') +
       '</div>' +
@@ -472,7 +521,7 @@
   function fill() {
     $('aOn').checked = S.on; $('aSnd').checked = S.sound;
     $('aTickT').checked = S.tickTimer; $('aTickW').checked = S.tickWatch;
-    $('aVol').value = Math.round(S.vol * 100); $('aNudge').value = String(S.nudge);
+    $('aTickS').value = S.tickSound; $('aVol').value = Math.round(S.vol * 100); $('aNudge').value = String(S.nudge);
     $('aOpen').checked = S.hOpen; $('aSoon').value = String(S.hSoon); $('aHMiss').checked = S.hMiss;
     $('aEve').checked = S.eve; $('aEveT').value = S.eveT;
     dlg.querySelectorAll('[data-lead]').forEach(function (b) { b.setAttribute('aria-pressed', String(S.tLeads.indexOf(+b.dataset.lead) > -1)); });
@@ -486,6 +535,7 @@
     S.tickTimer = $('aTickT').checked; S.tickWatch = $('aTickW').checked;
     S.vol = Math.max(0.05, Math.min(1, (+$('aVol').value || 40) / 100));
     S.nudge = +$('aNudge').value || 0;
+    S.tickSound = $('aTickS').value || 'soft';
     S.hOpen = $('aOpen').checked; S.hSoon = +$('aSoon').value || 0; S.hMiss = $('aHMiss').checked;
     S.eve = $('aEve').checked; S.eveT = $('aEveT').value || '21:00';
     S.tLeads = [].slice.call(dlg.querySelectorAll('[data-lead][aria-pressed="true"]')).map(function (b) { return +b.dataset.lead; });
@@ -538,7 +588,8 @@
     popup({ title: 'Test alert', body: 'This is how Summit alerts look and sound.', kind: 'info', sysForce: true }, true);
     fillLog();
   });
-  $('aTry').addEventListener('click', function () {
+  $('aTickS').addEventListener('change', function () { audio(); tick(0); setTimeout(function () { tick(1); }, 600); });
+    $('aTry').addEventListener('click', function () {
     audio();
     [0, 1, 2].forEach(function (i) { setTimeout(function () { tick(i); }, i * 600); });
   });

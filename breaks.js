@@ -4,14 +4,21 @@
   var KEY = 'peaks.brk';
   var $ = function (id) { return document.getElementById(id); };
   var CFG = { h: { toggle: 'fpToggle', go: 'habits' }, t: { toggle: 'tfToggle', go: 'tasks' } };
-  var LENS = [5, 10, 15, 20];
+  var PRESETS = [5, 10];          // the only fixed buttons
+  var MIN = 1, MAX = 180;         // typed / scrolled range, in minutes
+
+  function clampLen(v) {
+    v = Math.round(+v);
+    if (!isFinite(v)) return null;
+    return Math.max(MIN, Math.min(MAX, v));
+  }
 
   var S = (function () {
     var o = { len: 5, run: { h: null, t: null } };
     try {
       var s = JSON.parse(localStorage.getItem(KEY));
       if (s && typeof s === 'object') {
-        if (LENS.indexOf(+s.len) > -1) o.len = +s.len;
+        var l = clampLen(s.len); if (l) o.len = l;
         ['h', 't'].forEach(function (k) {
           var r = s.run && s.run[k];
           if (r && +r.end > Date.now()) o.run[k] = { end: +r.end };
@@ -37,9 +44,21 @@
       ? '<span class="brk-l">☕ Break</span><span class="brk-clock" data-clock>' + clock(r.end - Date.now()) + '</span>' +
         '<button type="button" class="btn btn-line btn-sm" data-end>End break</button>' +
         (isPaused(k) ? '<button type="button" class="btn btn-soft btn-sm" data-resume>Resume focus</button>' : '')
-      : '<span class="brk-l">☕ Break</span><span class="chiprow" role="group" aria-label="Break length">' +
-        LENS.map(function (m) { return '<button type="button" class="chip" data-len="' + m + '" aria-pressed="' + (S.len === m) + '">' + m + ' min</button>'; }).join('') +
-        '</span><button type="button" class="btn btn-line btn-sm" data-start>Start</button>';
+      : '<span class="brk-l">☕ Break</span>' +
+        '<span class="brk-pick" role="group" aria-label="Break length">' +
+          PRESETS.map(function (m) {
+            return '<button type="button" class="chip" data-len="' + m + '" aria-pressed="' + (S.len === m) + '">' + m + '</button>';
+          }).join('') +
+          '<label class="brk-in"><input type="number" class="field" data-in min="' + MIN + '" max="' + MAX + '" step="1" value="' + S.len + '" aria-label="Break minutes"><span>min</span></label>' +
+        '</span>' +
+        '<button type="button" class="btn btn-line btn-sm" data-start>Start</button>';
+  }
+
+  function syncChips(k) {
+    var b = boxes[k]; if (!b) return;
+    b.querySelectorAll('[data-len]').forEach(function (c) {
+      c.setAttribute('aria-pressed', String(+c.dataset.len === S.len));
+    });
   }
 
   function start(k) {
@@ -64,9 +83,14 @@
     b.className = 'brk'; b.id = 'brk-' + k;
     row.insertAdjacentElement('afterend', b);
     boxes[k] = b;
+
     b.addEventListener('click', function (e) {
       var c = e.target.closest('[data-len]');
-      if (c) { S.len = +c.dataset.len; save(); render(k); return; }
+      if (c) {
+        S.len = +c.dataset.len; save();
+        var inp = b.querySelector('[data-in]'); if (inp) inp.value = S.len;
+        syncChips(k); return;
+      }
       if (e.target.closest('[data-start]')) { start(k); return; }
       if (e.target.closest('[data-end]')) { end(k, false); return; }
       if (e.target.closest('[data-resume]')) {
@@ -74,6 +98,29 @@
         var t2 = toggleBtn(k); if (t2 && t2.textContent.trim() === 'Resume') t2.click();
       }
     });
+
+    // typed minutes
+    b.addEventListener('input', function (e) {
+      if (!e.target.matches('[data-in]')) return;
+      var v = clampLen(e.target.value);
+      if (v) { S.len = v; save(); syncChips(k); }
+    });
+    // tidy the box once typing is finished
+    b.addEventListener('focusout', function (e) {
+      if (e.target.matches && e.target.matches('[data-in]')) e.target.value = S.len;
+    });
+    b.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target.matches('[data-in]')) { e.preventDefault(); start(k); }
+    });
+    // scrolled minutes (mouse wheel while the box is focused)
+    b.addEventListener('wheel', function (e) {
+      var inp = e.target.closest && e.target.closest('[data-in]');
+      if (!inp || document.activeElement !== inp) return;
+      e.preventDefault();
+      var v = clampLen(S.len + (e.deltaY < 0 ? 1 : -1));
+      if (v) { S.len = v; save(); inp.value = v; syncChips(k); }
+    }, { passive: false });
+
     t.addEventListener('click', function () {                  // pressing Start/Resume yourself ends the break
       setTimeout(function () { if (S.run[k] && t.textContent.trim() === 'Pause') end(k, false); }, 0);
     });
@@ -94,5 +141,13 @@
     var w = new Worker(URL.createObjectURL(new Blob(['setInterval(function(){postMessage(1)},500)'], { type: 'text/javascript' })));
     w.onmessage = tick;
   } catch (e) {}
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) { tick(); render('h'); render('t'); } });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    tick();
+    ['h', 't'].forEach(function (k) {
+      var inp = boxes[k] && boxes[k].querySelector('[data-in]');
+      if (inp && document.activeElement === inp) return;        // don't wipe what is being typed
+      render(k);
+    });
+  });
 })();
