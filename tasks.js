@@ -159,13 +159,13 @@
   anchor.insertAdjacentHTML('beforebegin',
     '<section id="queue" class="mt-10">' +
       '<div class="mb-4"><h2 class="serif text-3xl sm:text-4xl font-black">Priority queue</h2>' +
-      '<p class="text-sm opacity-80 mt-1">Write tasks messily. Answer a few sharp questions. The queue decides what comes first and counts down to each deadline.</p></div>' +
+      '</div>' +
       '<div class="frame">' +
         '<div id="qNow"></div>' +
         '<div class="grid lg:grid-cols-2 gap-4 mt-4">' +
           '<form id="tForm" class="panel-soft" autocomplete="off">' +
             '<h3 class="serif text-2xl font-black">Add a task</h3>' +
-            '<label class="block text-sm font-bold mt-3 mb-1" for="tText">What is it? Write it messily, that’s fine.</label>' +
+            '<label class="block text-sm font-bold mt-3 mb-1" for="tText">What is it?</label>' +
             '<input id="tText" class="field" maxlength="120" placeholder="e.g. phys chap 4 revise + past paper">' +
             '<p id="tProg" class="text-xs font-bold mt-3 opacity-75"></p>' +
 
@@ -269,7 +269,7 @@
         '</div>';
     } else {
       $('qNow').innerHTML =
-        '<div class="panel-deep"><p class="text-xs font-bold opacity-80" style="letter-spacing:.08em">DO THIS FIRST</p>' +
+        '<div class="panel-deep qnone"><p class="text-xs font-bold opacity-80" style="letter-spacing:.08em">DO THIS FIRST</p>' +
         '<h3 class="serif text-3xl font-black mt-2">Nothing waiting.</h3>' +
         '<p class="mt-2 text-sm opacity-85">Add a task below and I’ll tell you where it belongs in line.</p></div>';
     }

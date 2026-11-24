@@ -8,20 +8,7 @@
 
   // [text, when]  when: both = anytime, run = while focusing, end = when a session ends
   var STARTER = [
-    ['One day at a time. One step at a time.', 'both'],
-    ['Small steps, taken daily, add up to something big.', 'both'],
-    ['Start before you feel ready.', 'both'],
-    ['You don’t need a perfect day. You need a done one.', 'both'],
-    ['Focus on the next ten minutes only.', 'run'],
-    ['Progress counts even when it’s slow.', 'both'],
-    ['Future you is watching. Make them proud.', 'run'],
-    ['Show up first. Motivation follows.', 'both'],
-    ['A little today beats a lot someday.', 'both'],
-    ['Stay with it. This is the part that matters.', 'run'],
-    ['See, you can. It wasn’t that hard. The fear was only in your mind.', 'end'],
-    ['You showed up, and it wasn’t nearly as scary as you thought.', 'end'],
-    ['Another proof that you can do hard things.', 'end'],
-    ['That was easier than the dread of starting it. Remember this next time.', 'end']
+    ['One day at a time. One step at a time.', 'both']
   ];
   var EVERY = [15], MAX = 500, MAXLEN = 220, MAXPIC = 40;
   var WHEN = { both: 'Anytime', run: 'While focusing', end: 'At the end' };
